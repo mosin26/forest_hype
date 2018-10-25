@@ -146,10 +146,13 @@ def delineate_crowns(img, tree_tops, max_r=300, n_of_tr=32, cut_off=0.92, min_ed
     return tree_crowns, tree_crowns_smoothed
 
 
-def itcd(input_img, smoothing=30, min_crown=50, max_crown=300, n_transects=64,
+def itcd(input_img, smoothing=30, rgb=True, min_crown=50, max_crown=300, n_transects=64,
                    fitting=0.9, outliers=2, sharpness=50):
     # loading data
-    img_gray = rgb2gray(input_img)
+    if rgb:
+        img_gray = rgb2gray(input_img)
+    else:
+        img_gray = input_img
     # preprocessing
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

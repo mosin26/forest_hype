@@ -19,14 +19,17 @@ def delineate_boundaries(segments, n_dilation=3):
         boundaries = binary_dilation(boundaries)
     return boundaries
 
-def itcd(input_img, smoothing=30):
+def itcd(input_img, smoothing=30, rgb=True, n_dilation=3):
     """
     Returns boundaries of tree crowns in the imageself.
     Implementation of canopies thresholding and watershed segmentation.
 
     input_img: input image (np.array)
     """
-    img_gray = rgb2gray(input_img)
+    if rgb:
+        img_gray = rgb2gray(input_img)
+    else:
+        img_gray = input_img
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -44,5 +47,5 @@ def itcd(input_img, smoothing=30):
     segments = watershed(-img_gaussian, markers, mask=canopy_mask)
     segments[np.where((segments==0) & (canopy_mask==True))] = n_labels+1
 
-    boundaries = delineate_boundaries(segments)
+    boundaries = delineate_boundaries(segments,n_dilation=n_dilation)
     return boundaries
