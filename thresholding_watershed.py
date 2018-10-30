@@ -12,6 +12,8 @@ from skimage.color import rgb2gray
 from skimage.filters import threshold_mean
 from skimage.feature import peak_local_max
 
+from shapely.geometry import MultiPoint, MultiPolygon
+
 
 def delineate_boundaries(segments, n_dilation=3):
     boundaries = find_boundaries(segments)
@@ -46,6 +48,10 @@ def itcd(input_img, smoothing=30, rgb=True, n_dilation=3):
 
     segments = watershed(-img_gaussian, markers, mask=canopy_mask)
     segments[np.where((segments==0) & (canopy_mask==True))] = n_labels+1
+    
+    polygons = [MultiPoint(list(zip(points[1],points[0]))).convex_hull for points in [np.where(segments==i) for i in range(1,n_labels)]]
+    
+    return MultiPolygon([polygon for polygon in polygons if polygon.geom_type == 'Polygon'])
 
-    boundaries = delineate_boundaries(segments,n_dilation=n_dilation)
-    return boundaries
+    #boundaries = delineate_boundaries(segments,n_dilation=n_dilation)
+    #return boundaries
