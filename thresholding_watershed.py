@@ -21,7 +21,7 @@ def delineate_boundaries(segments, n_dilation=3):
         boundaries = binary_dilation(boundaries)
     return boundaries
 
-def itcd(input_img, smoothing=30, rgb=True, n_dilation=3):
+def itcd(input_img, smoothing=30, rgb=True, min_distance=10, return_seg=False):
     """
     Returns boundaries of tree crowns in the imageself.
     Implementation of canopies thresholding and watershed segmentation.
@@ -43,15 +43,14 @@ def itcd(input_img, smoothing=30, rgb=True, n_dilation=3):
     masked_gaussian = np.copy(img_gaussian)
     masked_gaussian[canopy_mask==False] = 0
 
-    local_maxima = peak_local_max(masked_gaussian, min_distance=1, exclude_border=0, indices=False)
+    local_maxima = peak_local_max(masked_gaussian, min_distance=min_distance, exclude_border=0, indices=False)
     markers, n_labels = ndi.label(local_maxima)
 
     segments = watershed(-img_gaussian, markers, mask=canopy_mask)
     segments[np.where((segments==0) & (canopy_mask==True))] = n_labels+1
-    
-    polygons = [MultiPoint(list(zip(points[1],points[0]))).convex_hull for points in [np.where(segments==i) for i in range(1,n_labels)]]
-    
-    return MultiPolygon([polygon for polygon in polygons if polygon.geom_type == 'Polygon'])
 
-    #boundaries = delineate_boundaries(segments,n_dilation=n_dilation)
-    #return boundaries
+    polygons = [MultiPoint(list(zip(points[1],points[0]))).convex_hull for points in [np.where(segments==i) for i in range(1,n_labels)]]
+    if return_seg:
+        return segments
+    else:
+        return MultiPolygon([polygon for polygon in polygons if polygon.geom_type == 'Polygon'])
