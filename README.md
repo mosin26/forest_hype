@@ -1,1 +1,1 @@
-# ForesHype Project
+# ForestHype Project
