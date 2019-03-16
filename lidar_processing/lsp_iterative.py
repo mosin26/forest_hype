@@ -2,18 +2,27 @@ import numpy as np
 import math
 
 ## Constants
-X = 0
-Y = 1
-H = 2
-T = 3
-R = 5
+X = 0 # Longitude
+Y = 1 # Latitude
+H = 2 # Height of Tree
+T = 3 # Tree ID
+P = 4 # Profile ID
+D = 5 # Distance to DMX
+
+R = 4 # Radius of Area of interest
+NUM_PROF = 12
 RS2 = R / math.sqrt(2)
+R2 = R/2
+R3 = R/2 * math.sqrt(3)
 filename_in = "/home/roberto/Documents/LIDAR_DATA/Flight7/dsm_fil_for.txt"
-filename_out = "/home/roberto/Documents/LIDAR_DATA/Flight7/profile.txt"
+filename_trees = "/home/roberto/Documents/LIDAR_DATA/Flight7/trees.txt"
+filename_profiles = "/home/roberto/Documents/LIDAR_DATA/Flight7/profiles.txt"
 
 ## Global variables
-profiles_x = [R, RS2, 0, -RS2, -R, -RS2,  0,  RS2, R]
-profiles_y = [0, RS2, R,  RS2,  0, -RS2, -R, -RS2, 0]
+#profiles_x = [R, RS2, 0, -RS2, -R, -RS2,  0,  RS2, R]
+#profiles_y = [0, RS2, R,  RS2,  0, -RS2, -R, -RS2, 0]
+profiles_x = [R, R3, R2, 0, -R2, -R3, -R, -R3, -R2,  0,  R2, R3,  R]
+profiles_y = [0, R2, R3, R,  R3, R2,   0, -R2, -R3, -R, -R3, -R2, 0]
 
 lsps = []
 trees = []
@@ -26,7 +35,9 @@ def load_values():
         values_str = line.rstrip().split(' ')
         values = [float(i) for i in values_str]
         values[H] -= 190  #Mean value of DTM
-        values.append(-1) # value reserved for the tree number
+        values.append(-1) # value reserved for tree id
+        values.append(-1) # value reserved for profile id
+        values.append(-1) # value reserved for distance to dmx
         array.append(values)
     lsps = np.transpose(array)
 
@@ -52,43 +63,88 @@ def generate_profile_vertices(gmx, index):
 
 def generate_profiles(gmx):
     profiles_gmx = []
-    for i in range(0,8):
+    for i in range(0,NUM_PROF):
         profile_gmx = generate_profile_vertices(gmx, i)
         profiles_gmx.append(profile_gmx)
     return profiles_gmx
 
+#TODO: add constraint to evaluate only remaining points (currently positives only)
+def evaluate_neighbors(gmx):
+    global file_trees
+    global lsps
+    
+    neighbors_i = np.where(np.logical_and(lsps[T] < 0, lsps[P] > 0))
+    neighbors_sorted_i = np.argsort(lsps[D,neighbors_i])
+    
+    for i in range(0,NUM_PROF):
+        mask = np.where(np.logical_and(lsps[T] < 0,lsps[P,:] == i))
+        neighbors_sorted_i = np.argsort(lsps[D,mask[0]])
+        min_height = gmx[H]
+        no_decreasing = 0
+        current_dist = 0
+        for j in neighbors_sorted_i:
+            if lsps[H, mask[0][j]] < min_height+0.3 and lsps[D, mask[0][j]]-current_dist < 0.5:
+                current_dist = lsps[D, mask[0][j]]
+                if lsps[H, mask[0][j]] < min_height:
+                    min_height = lsps[H, mask[0][j]]
+                lsps[T, mask[0][j]] = tree_counter
+                for k in range (X,D+1):
+                    file_trees.write(str(lsps[k, mask[0][j]])+" ")
+                file_trees.write("\n")
+            else:
+                break
+
+def get_distance(gmx, neighbor):
+    x1 = gmx[X]
+    y1 = gmx[Y]
+    x2 = neighbor[X]
+    y2 = neighbor[Y]
+    return math.sqrt((x1-x2)**2 + (y1-y2)**2)
+
 def find_area(gmx_profiles):
     global lsps
-    global trees
+    maxx = []
     for i in range(0,len(lsps[0])):
+        p = 0
         for profile in gmx_profiles:
             if point_in_triangle(lsps[:,i], profile[0], profile[1], profile[2]):
-                lsps[T,i] = tree_counter
-                trees.append(lsps[:,i].copy())
-#                file_out.write(str(lsps[X,i])+" "+str(lsps[Y,i])+" "+str(lsps[H,i])+" "+str(lsps[T,i])+"\n")
+                maxx.append(lsps[H,i])
+                lsps[P,i] = p
+                lsps[D,i] = get_distance(profile[0], lsps[:,i])
+                for k in range (X,D+1):
+                    file_profiles.write(str(lsps[k, i])+" ")
+                file_profiles.write("\n")
 
-### The following line discards the points in area of the profiles, including the gmx
-### This needs to be coded in another way
-### First evaluating if the point is part of the tree
-                lsps[H,i] = -1
+            p += 1
 
         
 def find_global_maximum():
-    #print(len(lsps[H]))
-    max_height = np.argmax(lsps[2])
-    return lsps[:,max_height]
-
+    mask = np.where(lsps[T] < 0)
+    max_height = np.argmax(lsps[H, mask[0]]) #Check if it is > 0; if not stop
+    maxx = 0
+    max_index = -1
+    for i in mask[0]:
+        if lsps[H, i] > maxx:
+            maxx = lsps[H, i]
+            max_index = i
+    return lsps[:,max_index]
 
 file_in = open(filename_in, "r")
-file_out = open(filename_out, "w")
+file_trees = open(filename_trees, "w")
+file_profiles = open(filename_profiles, "w")
 load_values()
-for i in range(1,20):
+for i in range(1,50):
     gmx = find_global_maximum()
     gmx_profiles = generate_profiles(gmx)
-    tree_area = find_area(gmx_profiles)
-    print("Iteration: "+str(tree_counter)+", maximum height: "+str(gmx))
+    find_area(gmx_profiles)
+
+    tree = evaluate_neighbors(gmx)
+    print("Iteration: "+str(tree_counter)+", maximum height: "+str(gmx[H]))
     tree_counter += 1
-print("Saving file")
-for tree in trees:
-    file_out.write(str(tree[X])+" "+str(tree[Y])+" "+str(tree[H])+" "+str(tree[T])+"\n")
-file_out.close()
+
+print("Saving file.............................")
+file_trees.close()
+file_profiles.close()
+
+
+#TODO: Filter vegetation lower than 5 mts
