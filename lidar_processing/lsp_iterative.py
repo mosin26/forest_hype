@@ -1,7 +1,10 @@
+'''
+Requires dsm_raster.txt file
+First execute rasterize_dsm.py to get it
+'''
 ## Libraries
 import numpy as np
 import math
-from raster_metadata import set_raster, get_value
 
 ## Constants
 X = 0 # Longitude
@@ -12,20 +15,21 @@ P = 4 # Profile ID
 D = 5 # Distance to DMX
 
 R = 4 # Radius of Area of interest
-NUM_PROF = 12
+NUM_PROF = 8
 RS2 = R / math.sqrt(2)
 R2 = R/2
 R3 = R/2 * math.sqrt(3)
-filename_in = "/home/roberto/Documents/LIDAR_DATA/Flight7/dsm_fil_for.txt"
+#filename_in = "/home/roberto/Documents/LIDAR_DATA/Flight7/dsm_fil_for.txt"
+filename_in = "/home/roberto/Documents/LIDAR_DATA/Flight7/dsm_raster.txt"
 filename_trees = "/home/roberto/Documents/LIDAR_DATA/Flight7/trees.txt"
 filename_profiles = "/home/roberto/Documents/LIDAR_DATA/Flight7/profiles.txt"
 filename_dtm = "/home/roberto/Documents/LIDAR_DATA/Flight7/dtm_1m_for.tif"
 
 ## Global variables
-#profiles_x = [R, RS2, 0, -RS2, -R, -RS2,  0,  RS2, R]
-#profiles_y = [0, RS2, R,  RS2,  0, -RS2, -R, -RS2, 0]
-profiles_x = [R, R3, R2, 0, -R2, -R3, -R, -R3, -R2,  0,  R2, R3,  R]
-profiles_y = [0, R2, R3, R,  R3, R2,   0, -R2, -R3, -R, -R3, -R2, 0]
+profiles_x = [R, RS2, 0, -RS2, -R, -RS2,  0,  RS2, R]
+profiles_y = [0, RS2, R,  RS2,  0, -RS2, -R, -RS2, 0]
+#profiles_x = [R, R3, R2, 0, -R2, -R3, -R, -R3, -R2,  0,  R2, R3,  R]
+#profiles_y = [0, R2, R3, R,  R3, R2,   0, -R2, -R3, -R, -R3, -R2, 0]
 
 lsps = []
 trees = []
@@ -37,11 +41,6 @@ def load_values():
     for line in file_in:
         values_str = line.rstrip().split(' ')
         values = [float(i) for i in values_str]
-        dtm = get_value(values[X], values[Y])
-        if dtm >= 0:
-            values[H] -= dtm   #Mean value of DTM
-        else:
-            values[H] = 0
         values.append(-1) # value reserved for tree id
         values.append(-1) # value reserved for profile id
         values.append(-1) # value reserved for distance to dmx
@@ -137,7 +136,7 @@ def find_global_maximum():
     return lsps[:,max_index]
 
 ########################### Main #################################
-set_raster(filename_dtm)
+#set_raster(filename_dtm)
 file_in = open(filename_in, "r")
 file_trees = open(filename_trees, "w")
 file_profiles = open(filename_profiles, "w")
@@ -154,5 +153,3 @@ for i in range(1,5):
 print("Saving file.............................")
 file_trees.close()
 file_profiles.close()
-
-#TODO: Filter vegetation lower than 5 mts
