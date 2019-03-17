@@ -1,5 +1,7 @@
+## Libraries
 import numpy as np
 import math
+from raster_metadata import set_raster, get_value
 
 ## Constants
 X = 0 # Longitude
@@ -17,6 +19,7 @@ R3 = R/2 * math.sqrt(3)
 filename_in = "/home/roberto/Documents/LIDAR_DATA/Flight7/dsm_fil_for.txt"
 filename_trees = "/home/roberto/Documents/LIDAR_DATA/Flight7/trees.txt"
 filename_profiles = "/home/roberto/Documents/LIDAR_DATA/Flight7/profiles.txt"
+filename_dtm = "/home/roberto/Documents/LIDAR_DATA/Flight7/dtm_1m_for.tif"
 
 ## Global variables
 #profiles_x = [R, RS2, 0, -RS2, -R, -RS2,  0,  RS2, R]
@@ -34,7 +37,11 @@ def load_values():
     for line in file_in:
         values_str = line.rstrip().split(' ')
         values = [float(i) for i in values_str]
-        values[H] -= 190  #Mean value of DTM
+        dtm = get_value(values[X], values[Y])
+        if dtm >= 0:
+            values[H] -= dtm   #Mean value of DTM
+        else:
+            values[H] = 0
         values.append(-1) # value reserved for tree id
         values.append(-1) # value reserved for profile id
         values.append(-1) # value reserved for distance to dmx
@@ -129,11 +136,13 @@ def find_global_maximum():
             max_index = i
     return lsps[:,max_index]
 
+########################### Main #################################
+set_raster(filename_dtm)
 file_in = open(filename_in, "r")
 file_trees = open(filename_trees, "w")
 file_profiles = open(filename_profiles, "w")
 load_values()
-for i in range(1,50):
+for i in range(1,5):
     gmx = find_global_maximum()
     gmx_profiles = generate_profiles(gmx)
     find_area(gmx_profiles)
@@ -145,6 +154,5 @@ for i in range(1,50):
 print("Saving file.............................")
 file_trees.close()
 file_profiles.close()
-
 
 #TODO: Filter vegetation lower than 5 mts
