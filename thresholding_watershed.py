@@ -47,7 +47,8 @@ def itcd(input_img, smoothing=30, rgb=True, min_distance=10, return_seg=False):
     markers, n_labels = ndi.label(local_maxima)
 
     segments = watershed(-img_gaussian, markers, mask=canopy_mask)
-    segments[np.where((segments==0) & (canopy_mask==True))] = n_labels+1
+    # has to be modified in order to segment not segemented areas further
+    # segments[np.where((segments==0) & (canopy_mask==True))] = n_labels+1
 
     polygons = [MultiPoint(list(zip(points[1],points[0]))).convex_hull for points in [np.where(segments==i) for i in range(1,n_labels)]]
     if return_seg:
