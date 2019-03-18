@@ -7,12 +7,8 @@ from skimage.segmentation import watershed
 from skimage.segmentation import find_boundaries
 from skimage.morphology import binary_dilation
 from skimage.exposure import equalize_adapthist
-from skimage.filters import gaussian
-from skimage.color import rgb2gray
-from skimage.filters import threshold_mean
+from skimage.filters import gaussian, threshold_mean
 from skimage.feature import peak_local_max
-
-from shapely.geometry import MultiPoint, MultiPolygon
 
 
 def delineate_boundaries(segments, n_dilation=3):
@@ -21,24 +17,20 @@ def delineate_boundaries(segments, n_dilation=3):
         boundaries = binary_dilation(boundaries)
     return boundaries
 
-def itcd(input_img, smoothing=30, rgb=True, min_distance=10, return_seg=False):
+
+def itcd(input_img, smoothing=30, min_distance=10, thres_coef=1):
     """
     Returns boundaries of tree crowns in the imageself.
     Implementation of canopies thresholding and watershed segmentation.
 
     input_img: input image (np.array)
     """
-    if rgb:
-        img_gray = rgb2gray(input_img)
-    else:
-        img_gray = input_img
-
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        img_equlized = equalize_adapthist(img_gray)
+        img_equlized = equalize_adapthist(input_img)
     img_gaussian = gaussian(img_equlized, smoothing)
 
-    canopy_mask = img_gaussian > threshold_mean(img_gaussian)
+    canopy_mask = img_gaussian > thres_coef * threshold_mean(img_gaussian)
 
     masked_gaussian = np.copy(img_gaussian)
     masked_gaussian[canopy_mask==False] = 0
@@ -48,10 +40,6 @@ def itcd(input_img, smoothing=30, rgb=True, min_distance=10, return_seg=False):
 
     segments = watershed(-img_gaussian, markers, mask=canopy_mask)
     # has to be modified in order to segment not segemented areas further
-    # segments[np.where((segments==0) & (canopy_mask==True))] = n_labels+1
+    segments[np.where((segments==0) & (canopy_mask==True))] = n_labels+1
 
-    polygons = [MultiPoint(list(zip(points[1],points[0]))).convex_hull for points in [np.where(segments==i) for i in range(1,n_labels)]]
-    if return_seg:
-        return segments
-    else:
-        return MultiPolygon([polygon for polygon in polygons if polygon.geom_type == 'Polygon'])
+    return segments
