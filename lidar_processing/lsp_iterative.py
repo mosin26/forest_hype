@@ -19,11 +19,11 @@ NUM_PROF = 8
 RS2 = R / math.sqrt(2)
 R2 = R/2
 R3 = R/2 * math.sqrt(3)
-#filename_in = "/home/roberto/Documents/LIDAR_DATA/Flight7/dsm_fil_for.txt"
-filename_in = "/home/roberto/Documents/LIDAR_DATA/Flight7/dsm_raster.txt"
-filename_trees = "/home/roberto/Documents/LIDAR_DATA/Flight7/trees.txt"
-filename_profiles = "/home/roberto/Documents/LIDAR_DATA/Flight7/profiles.txt"
-filename_dtm = "/home/roberto/Documents/LIDAR_DATA/Flight7/dtm_1m_for.tif"
+#filename_in = "../../data/lidar/dsm_fil_for.txt"
+filename_in = "../../data/lidar/chm_grid_points.txt"
+filename_trees = "../../data/lidar/trees.txt"
+filename_profiles = "../../data/lidar/profiles.txt"
+filename_dtm = "../../data/lidar/dtm_1m_for.tif"
 
 ## Global variables
 profiles_x = [R, RS2, 0, -RS2, -R, -RS2,  0,  RS2, R]
@@ -141,7 +141,7 @@ file_in = open(filename_in, "r")
 file_trees = open(filename_trees, "w")
 file_profiles = open(filename_profiles, "w")
 load_values()
-for i in range(1,5):
+for i in range(1,10):
     gmx = find_global_maximum()
     gmx_profiles = generate_profiles(gmx)
     find_area(gmx_profiles)
