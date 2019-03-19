@@ -43,9 +43,11 @@ def load_values():
         else:
             values[H] = 0
         pixel_coor_x = math.floor((values[X]-raster_coor[X]) / raster_coor[2] * raster_size[X])
-        pixel_coor_y = math.floor((values[Y]-raster_coor[Y]) / raster_coor[3] * raster_size[Y])
+        pixel_coor_y = raster_size[Y] - 1- math.floor((values[Y]-raster_coor[Y]) / raster_coor[3] * raster_size[Y])
         values.append(pixel_coor_x)
         values.append(pixel_coor_y)
+        print("values")
+        print(values)
         array.append(values)
     return array
 
@@ -56,7 +58,7 @@ def set_pixel_value(array):
             chm_array[int(point[PY]),int(point[PX])] = point[H]
     footprint = generate_binary_structure(2, 1)
     #filtered_chm = grey_dilation(chm_array, footprint=footprint)
-    filtered_chm = gaussian_filter(chm_array, sigma=1)
+    filtered_chm = gaussian_filter(chm_array, sigma=0.95)
     return filtered_chm
 
 def save_raster(chm_array):
