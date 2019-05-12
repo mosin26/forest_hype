@@ -2,6 +2,8 @@ import fiona
 import numpy as np
 from shapely.geometry import mapping, Polygon, MultiPoint
 
+from tqdm import tqdm_notebook
+
 def crowns_polygons(shapefile_path, crowns, dataset, row_shift=0, col_shift=0):
     """
     Write detected crowns in polygons list format to the shapefile.
@@ -44,7 +46,7 @@ def crowns_segments(shapefile_path, crowns, dataset, row_shift=0, col_shift=0, a
             schema['properties'][att] = attr[att][0]
     crowns = [np.where(crowns==i) for i in range(1,np.max(crowns)+1)]
     with fiona.open(shapefile_path, 'w', 'ESRI Shapefile', schema, dataset.crs) as c:
-        for i, crown in enumerate(crowns):
+        for i, crown in tqdm_notebook(enumerate(crowns)):
             poly = MultiPoint(list(map(lambda point: dataset.xy(row_shift+point[1],col_shift+point[0]), 
                                        zip(crown[1],crown[0])))).convex_hull
             if type(poly) == Polygon:
