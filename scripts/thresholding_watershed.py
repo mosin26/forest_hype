@@ -18,17 +18,19 @@ def delineate_boundaries(segments, n_dilation=3):
     return boundaries
 
 
-def itcd(input_img, smoothing=30, min_distance=10, thres_coef=1):
+def itcd(input_img, smoothing=30, min_distance=10, thres_coef=1, equalization=False):
     """
     Returns boundaries of tree crowns in the imageself.
     Implementation of canopies thresholding and watershed segmentation.
 
     input_img: input image (np.array)
     """
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        img_equlized = equalize_adapthist(input_img)
-    img_gaussian = gaussian(img_equlized, smoothing)
+    if equalization:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            input_img = equalize_adapthist(input_img)
+            
+    img_gaussian = gaussian(input_img, smoothing)
 
     canopy_mask = img_gaussian > thres_coef * threshold_mean(img_gaussian)
 
