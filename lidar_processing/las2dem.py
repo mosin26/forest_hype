@@ -11,8 +11,6 @@ from scipy.spatial import cKDTree
 '''
 
 ## Regions of interest
-global_area = [53050878, 681576017, 53050878+1000*100, 681576017-1000*100]
-deforested_area = [53058955, 681563788, 53058955+100*100, 681563788-100*100]
 forest_area = [53085364, 681550046, 53085364+100*100, 681550046-100*100]
 
 def in_ROI(x, y, area):
@@ -25,9 +23,7 @@ def in_ROI(x, y, area):
     return False
 
 in_file = laspy.file.File(sys.argv[1], mode = "r")
-out_file_g = open(sys.argv[2]+"_glo.txt", 'w')
-out_file_d = open(sys.argv[2]+"_def.txt", 'w')
-out_file_f = open(sys.argv[2]+"_for.txt", 'w')
+out_file = open(sys.argv[2]+".txt", 'w')
 point_records = in_file.points.copy()
 
 classification = int(sys.argv[3])
@@ -37,29 +33,25 @@ trees_only = np.where(in_file.raw_classification == classification)
 # pull out full point records of filtered points, and create an XYZ array for KDTree
 trees_points = in_file.points[trees_only]     
 
-deforested_density = 0
-forest_density = 0
-total_density = 0
+max_x = 0
+min_x = 981550046
+max_y = 0
+min_y = 981550046
 for trees_point in trees_points:
-    if in_ROI(trees_point['point']['X'], trees_point['point']['Y'], global_area):
-        print("%.2f %.2f" % (trees_point['point']['X'], trees_point['point']['Y'])) 
-        out_file_g.write("%.2f %.2f %.2f\n" % (trees_point['point']['X']/100, trees_point['point']['Y']/100, trees_point['point']['Z']/100))
-        if in_ROI(trees_point['point']['X'], trees_point['point']['Y'], deforested_area):
-            deforested_density += 1
-            out_file_d.write("%.2f %.2f %.2f\n" % (trees_point['point']['X']/100, trees_point['point']['Y']/100, trees_point['point']['Z']/100))
-        elif in_ROI(trees_point['point']['X'], trees_point['point']['Y'], forest_area):
-            forest_density += 1
-            out_file_f.write("%.2f %.2f %.2f\n" % (trees_point['point']['X']/100, trees_point['point']['Y']/100, trees_point['point']['Z']/100))
-        total_density += 1
+    print("%.2f %.2f" % (trees_point['point']['X'], trees_point['point']['Y'])) 
+    out_file.write("%.2f %.2f %.2f\n" % (trees_point['point']['X']/100, trees_point['point']['Y']/100, trees_point['point']['Z']/100))
+    if trees_point['point']['X'] < min_x:
+        min_x = trees_point['point']['X']
+    if trees_point['point']['X'] > max_x:
+        max_x = trees_point['point']['X']
+    if trees_point['point']['Y'] < min_y:
+        min_y = trees_point['point']['Y']
+    if trees_point['point']['Y'] > max_y:
+        max_y = trees_point['point']['Y']
+print(min_x)
+print(max_x)
+print(min_y)
+print(max_y)
 
-deforested_density /= 10000
-forest_density /= 10000
-total_density /= 1000000
+out_file.close()
 
-print("deforested density " + str(deforested_density))
-print("forest density " + str(forest_density))
-print("total density " + str(total_density))
-
-out_file_g.close()
-out_file_f.close()
-out_file_d.close()
